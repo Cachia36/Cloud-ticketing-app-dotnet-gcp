@@ -1,0 +1,115 @@
+﻿@{
+    var tickets = ViewBag.Tickets as List<cloud_ticket_app.Models.Ticket>;
+}
+
+<form id="refreshTicketsForm" method="post" action="/Tickets/RefreshTicketFunction">
+    <button id="refreshTicketsBtn" type="submit" class="btn btn-warning">Refresh Tickets</button>
+</form>
+
+<h2>Technician Dashboard</h2>
+<p>All submitted tickets</p>
+
+@if (tickets != null && tickets.Any())
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Uploaded by</th>
+                <th>Date</th>
+                <th>Screenshots</th>
+                <th>Close ticket</th>
+                <th>Resolved By</th>
+                <th>Resolved At</th>
+                <th>View ticket</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var ticket in tickets)
+            {
+                <tr>
+                    <td>@ticket.Title</td>
+                    @if (ticket.Status == "Closed")
+                    {
+                        <td>@ticket.Status || Ticket will be hidden after 7 days</td>
+                    }
+                    else
+                    {
+                        <td>@ticket.Status</td>
+                    }
+                    <td>@ticket.Priority</td>
+                    <td>@ticket.Email</td>
+                    <td>@ticket.CreatedAt.ToLocalTime()</td>
+                    <td>
+                        @if (ticket.Screenshots != null && ticket.Screenshots.Count > 0)
+                        {
+                            foreach (var url in ticket.Screenshots)
+                            {
+                                <a href="@url" target="_blank">
+                                    <img src="@url" alt="Screenshot" width="80" class="img-thumbnail me-1 mb-1" />
+                                </a>
+                            }
+                        }
+                        else
+                        {
+                            <span>You do not have access to view these screenshots</span>
+                        }
+                    </td>
+                    <td>
+                        @if (ticket.Status != "Closed")
+                        {
+                            <button type="button"
+                                class="btn btn-danger btn-sm close-ticket-btn"
+                                data-ticket-id="@ticket.Id">
+                                Close
+                            </button>
+                        }
+                        else
+                        {
+                            <p>N/A</p>
+                        }
+                    </td>
+                    <td>
+                        @if (ticket.Status == "Closed")
+                        {
+                            @ticket.ResolvedBy
+                        }
+                    </td>
+                    <td>
+                        @if (ticket.Status == "Closed")
+                        {
+                            @ticket.ResolvedAt.ToLocalTime();
+                        }
+                    </td>
+                    <td>
+                        <a href="@Url.Action("ViewTicket", "Tickets", new { id = ticket.Id })" class="btn btn-sm btn-primary">
+                            View Ticket
+                        </a>
+                    </td>
+                    <td></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>There are currently no ongoing tickets</p>
+}
+
+    <div class="position-fixed bottom-0 start-0 p-3" style="z-index: 1100">
+        <div id="homeToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+@section Scripts {
+    <script src="~/js/closeTicket.js"></script>
+    <script src="~/js/uploadTicket.js"></script>
+    <script src="~/js/refreshTickets.js"></script>
+}

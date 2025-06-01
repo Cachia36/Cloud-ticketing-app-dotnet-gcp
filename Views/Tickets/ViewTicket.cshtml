@@ -1,0 +1,86 @@
+﻿@model cloud_ticket_app.Models.Ticket
+@using Microsoft.AspNetCore.Authorization
+@inject IHttpContextAccessor HttpContextAccessor
+
+@{
+    ViewData["Title"] = "View tickets";
+}
+
+<div class="container mt-5">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Ticket Details</h4>
+        </div>
+        <div class="card-body">
+
+            <dl class="row">
+                <dt class="col-sm-3">Ticket ID</dt>
+                <dd class="col-sm-9">@Model.Id</dd>
+
+                <dt class="col-sm-3">Title</dt>
+                <dd class="col-sm-9">@Model.Title</dd>
+
+                <dt class="col-sm-3">Description</dt>
+                <dd class="col-sm-9">@Model.Description</dd>
+
+                <dt class="col-sm-3">Priority</dt>
+                <dd class="col-sm-9">@Model.Priority</dd>
+
+                <dt class="col-sm-3">Created At</dt>
+                <dd class="col-sm-9">@Model.CreatedAt.ToLocalTime()</dd>
+
+                <dt class="col-sm-3">Email</dt>
+                <dd class="col-sm-9">@Model.Email</dd>
+
+                <dt class="col-sm-3">Status</dt>
+                <dd class="col-sm-9">@Model.Status</dd>
+            </dl>
+
+            @if (Model.Screenshots != null && Model.Screenshots.Any())
+            {
+                <h5 class="mt-4">Screenshots</h5>
+                <div class="row">
+                    @foreach (var url in Model.Screenshots)
+                    {
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <img src="@url" class="card-img-top img-fluid" alt="screenshot" />
+                                <div class="card-body text-center">
+                                    <a href="@url" target="_blank" class="btn btn-sm btn-outline-primary">View Full</a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-muted">No screenshots uploaded.</p>
+            }
+            @if (Model.Status?.ToLower() == "closed")
+            {
+                <dl class="row">
+                    <dt class="col-sm-3">Resolved By</dt>
+                    <dd class="col-sm-9">@Model.ResolvedBy</dd>
+
+                    <dt class="col-sm-3">Resolved At</dt>
+                    <dd class="col-sm-9">@Model.ResolvedAt.ToLocalTime()</dd>
+                </dl>
+            }
+            else if (User.IsInRole("Technician"))
+            {
+                <td>
+                    <button type="button"
+                            class="btn btn-danger btn-sm close-ticket-btn"
+                            data-ticket-id="@Model.Id">
+                        Close
+                    </button>
+                </td>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/closeTicket.js"></script>
+}

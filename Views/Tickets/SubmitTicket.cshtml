@@ -1,0 +1,59 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success">@TempData["Message"]</div>
+}
+
+    <div class="text-center">
+        <h1 class="display-4">Submit Ticket</h1>
+    </div>
+
+    <form id="ticketForm" method="post" enctype="multipart/form-data" asp-controller="Tickets" asp-action="SubmitTicket">
+        <div class="mb-3">
+            <label for="ticketTitle" class="form-label">Title</label>
+            <input class="form-control" id="ticketTitle" name="title" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="ticketDescription" class="form-label">Description</label>
+            <textarea class="form-control" id="ticketDescription" name="description" rows="3" required></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label for="formFile" class="form-label">File upload</label>
+            <input class="form-control" type="file" id="fileInput" accept="image/png, image/jpeg, image/jpg" name="upload" multiple required>
+        </div>
+        <div id="fileLimit">
+            <p></p>
+        </div>
+        <button id="resetBtn" type="button" class="btn btn-secondary">Reset files</button>
+
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="priority" id="priorityHigh" value="High" required>
+            <label class="form-check-label" for="priorityHigh">High</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="priority" id="priorityMedium" value="Medium" required>
+            <label class="form-check-label" for="priorityMedium">Medium</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="priority" id="priorityLow" value="Low" required>
+            <label class="form-check-label" for="priorityLow">Low</label>
+        </div>
+
+        <button type="submit" id="submitBtn" class="btn btn-primary">Submit Ticket</button>
+
+        <div class="mb-3">
+            <label for="uploadProgress" class="form-label">Screenshot Upload Progress</label>
+            <progress id="uploadProgress" value="0" max="100" style="width: 100%;"></progress>
+        </div>
+        <div id="uploadStatus">
+            <p></p>
+        </div>
+    </form>
+
+@section Scripts {
+    <script src="~/js/uploadTicket.js"></script>
+}

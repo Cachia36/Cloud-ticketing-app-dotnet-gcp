@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<RootNamespace>cloud_
+		
+		_app</RootNamespace>
+		<UserSecretsId>07163bca-eed2-44af-8004-2e2990578c1e</UserSecretsId>
+		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+		<DockerfileContext>.</DockerfileContext>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<DebugType>none</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<DebugType>full</DebugType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Google.Cloud.Firestore" Version="3.10.0" />
+		<PackageReference Include="Google.Cloud.PubSub.V1" Version="3.24.0" />
+		<PackageReference Include="Google.Cloud.SecretManager.V1" Version="2.5.0" />
+		<PackageReference Include="Google.Cloud.Storage.V1" Version="4.13.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.15" />
+		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.20.1" />
+		<PackageReference Include="StackExchange.Redis" Version="2.8.31" />
+	</ItemGroup>
+
+</Project>

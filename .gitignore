@@ -1,0 +1,29 @@
+# Build and output
+bin/
+obj/
+packages/
+
+# IDE settings
+.vs/
+riderModule.iml
+.idea/
+_ReSharper.Caches/
+
+# Logs and temp
+*.log
+*.tmp
+
+# Docker
+*.env
+docker-compose.override.yml
+
+# Cloud credentials (VERY IMPORTANT)
+gcp-service-account.json
+
+# User settings
+*.user
+*.suo
+
+# OS junk
+.DS_Store
+Thumbs.db
