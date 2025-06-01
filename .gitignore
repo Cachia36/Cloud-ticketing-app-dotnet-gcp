@@ -17,7 +17,7 @@ _ReSharper.Caches/
 *.env
 docker-compose.override.yml
 
-# Cloud credentials (VERY IMPORTANT)
+# Cloud credentials
 gcp-service-account.json
 
 # User settings
