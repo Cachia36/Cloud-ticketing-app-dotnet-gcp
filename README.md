@@ -1,6 +1,6 @@
 # Cloud Ticketing App (.NET + GCP)
 
-The hosted website can be accessed here: https://cloud-ticket-app-665990973538.europe-west1.run.app/Authenticator
+The hosted website can be accessed here: https://cloud-ticket-app-665990973538.europe-west1.run.app/
 
 A cloud-native ticket management backend built with **.NET**, containerized using **Docker**, and integrated with **Google Cloud Platform (GCP)** for deployment and scaling.
 
