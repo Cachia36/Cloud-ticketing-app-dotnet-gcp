@@ -1,62 +1,86 @@
-﻿using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.Google;
-using Google.Cloud.Firestore;
-using StackExchange.Redis;
+﻿using System;
+using System.IO;
 using Microsoft.AspNetCore.Authentication;
-using Google.Cloud.SecretManager.V1;
-using cloud_ticket_app.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
+using StackExchange.Redis;
+
 using Google.Apis.Auth.OAuth2;
+using Google.Cloud.Firestore;
+using Google.Cloud.SecretManager.V1;
 using Google.Cloud.Storage.V1;
 
+using cloud_ticket_app.Services;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// --- Networking: listen on Cloud Run's PORT (defaults to 8080) ---
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
-// Load config (CreateBuilder already loads appsettings.json, but OK to keep)
-builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+// (Optional) appsettings.json is already loaded by CreateBuilder; fine to keep:
+builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
 
-// 1) Load your local service-account JSON (no env var needed)
-var credential = GoogleCredential.FromFile("gcp-service-account.json")
+// ---------- Google auth (local file in dev; ADC on Cloud Run) ----------
+var isCloudRun = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("K_SERVICE"));
+var projectId = Environment.GetEnvironmentVariable("GOOGLE_CLOUD_PROJECT")
+              ?? builder.Configuration["Gcp:ProjectId"]   // set for local dev if you want
+              ?? "pftc-459412";
+
+GoogleCredential credential;
+
+if (!isCloudRun && File.Exists("gcp-service-account.json"))
+{
+    // ✅ Local dev: use your JSON key
+    credential = GoogleCredential.FromFile("gcp-service-account.json")
                                  .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
+}
+else
+{
+    // ✅ Cloud Run (or no file found): use ADC (service account of the revision)
+    credential = GoogleCredential.GetApplicationDefault()
+                                 .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
+}
 
-// 2) Build Google Cloud clients with the SAME credential
-var secretClient = new SecretManagerServiceClientBuilder {
-    Credential = credential
-}.Build();
-
+// ---------- Google Cloud clients (Secret Manager, Storage, Firestore) ----------
+var secretClient = new SecretManagerServiceClientBuilder { Credential = credential }.Build();
 var storage = StorageClient.Create(credential);
-
-var db = new FirestoreDbBuilder {
-    ProjectId = "pftc-459412",
-    Credential = credential
-}.Build();
+var db = new FirestoreDbBuilder { ProjectId = projectId, Credential = credential }.Build();
 
 builder.Services.AddSingleton(secretClient);
 builder.Services.AddSingleton(credential);
 builder.Services.AddSingleton(storage);
 builder.Services.AddSingleton(db);
 
-// MVC + session
+// ---------- MVC + Session ----------
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession();
 
+// ---------- Redis (host/port/password from Secret Manager) ----------
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 {
+    // These secrets must exist (give your Cloud Run SA 'roles/secretmanager.secretAccessor')
     var host = secretClient.AccessSecretVersion(
-        new SecretVersionName("pftc-459412", "redis-url", "latest"))
+        new SecretVersionName(projectId, "redis-url", "latest"))
         .Payload.Data.ToStringUtf8().Trim();
 
     var portStr = secretClient.AccessSecretVersion(
-        new SecretVersionName("pftc-459412", "redis-port", "latest")) // <- this is actually your port
+        new SecretVersionName(projectId, "redis-port", "latest"))
         .Payload.Data.ToStringUtf8().Trim();
 
     var password = secretClient.AccessSecretVersion(
-        new SecretVersionName("pftc-459412", "redis-password", "latest"))
+        new SecretVersionName(projectId, "redis-password", "latest"))
         .Payload.Data.ToStringUtf8().Trim();
 
-    if (!int.TryParse(portStr, out var port)) port = 12154; // safe default
+    if (!int.TryParse(portStr, out var redisPort)) redisPort = 12154; // fallback if secret missing
 
     var cfg = new ConfigurationOptions
     {
@@ -66,27 +90,28 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
         SyncTimeout = 15000,
         KeepAlive = 30,
         AllowAdmin = true,
-        Ssl = false,              // non-TLS as per your working redis-cli form
+        Ssl = false, // set true only if your Redis requires TLS
         User = "default",
         Password = password
     };
-    cfg.EndPoints.Add(host, port);
+    cfg.EndPoints.Add(host, redisPort);
 
     var mux = ConnectionMultiplexer.Connect(cfg);
 
-    // quick sanity logs
+    // Simple diagnostics
     Console.WriteLine($"[Redis] Connected: {mux.IsConnected}");
     try { Console.WriteLine($"[Redis] Ping: {mux.GetDatabase().Ping().TotalMilliseconds} ms"); }
     catch (Exception ex) { Console.WriteLine($"[Redis] Ping failed: {ex.Message}"); }
 
     return mux;
 });
-;
 
+// ---------- Your app services ----------
 builder.Services.AddScoped<RedisTicketService>();
 builder.Services.AddScoped<FirestoreTicketService>();
 
-var oauthSecretName = new SecretVersionName("pftc-459412", "google-oauth-client-secret", "latest");
+// ---------- Authentication (Cookies + Google). ClientSecret from Secret Manager ----------
+var oauthSecretName = new SecretVersionName(projectId, "google-oauth-client-secret", "latest");
 var clientSecret = secretClient.AccessSecretVersion(oauthSecretName).Payload.Data.ToStringUtf8();
 
 builder.Services.AddAuthentication(options =>
@@ -97,9 +122,10 @@ builder.Services.AddAuthentication(options =>
 .AddCookie()
 .AddGoogle(options =>
 {
+    // ClientId from appsettings (local), ClientSecret from Secret Manager
     options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
     options.ClientSecret = clientSecret;
-    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme; 
+    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 });
 
 var app = builder.Build();
@@ -110,19 +136,20 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// Cloud Run terminates TLS at the proxy; HTTP inside the container is fine.
+// Keeping this is okay; it may log a benign warning about HTTPS port.
 app.UseHttpsRedirection();
-app.UseStaticFiles();
 
+app.UseStaticFiles();
 app.UseRouting();
 
-// ✅ Session must be enabled BEFORE anything that reads context.Session
+// Session must be enabled BEFORE anything that reads context.Session
 app.UseSession();
 
-// (Optional) You can also put authentication before your custom middleware
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Your middleware that reads Session
+// Middleware that checks Session 'Role' after auth
 app.Use(async (context, next) =>
 {
     var path = context.Request.Path;
@@ -147,6 +174,9 @@ app.Use(async (context, next) =>
 
     await next();
 });
+
+// Helpful startup log (shows bound URLs, e.g., http://0.0.0.0:8080 on Cloud Run)
+app.Logger.LogInformation("Starting on: {Urls}", string.Join(", ", app.Urls));
 
 app.MapControllerRoute(
     name: "default",
