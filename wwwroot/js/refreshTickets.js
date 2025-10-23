@@ -13,8 +13,19 @@
         xhr.onload = function () {
             if (xhr.status === 200) {
                 sessionStorage.setItem("refreshedTickets", "true");
-                window.location.href = window.location.href;
+                window.location.reload();
+            } else {
+                console.error('RefreshTicketFunction failed:', xhr.status, xhr.responseText);
+                alert('Refresh failed:\n' + xhr.responseText); // TEMP: show details
+                refreshTicketsBtn.disabled = false;
+                refreshTicketsBtn.innerText = "Refresh Tickets";
             }
+        };
+        xhr.onerror = function () {
+            console.error('Network error calling RefreshTicketFunction');
+            alert('Network error calling RefreshTicketFunction');
+            refreshTicketsBtn.disabled = false;
+            refreshTicketsBtn.innerText = "Refresh Tickets";
         };
 
         xhr.send();
