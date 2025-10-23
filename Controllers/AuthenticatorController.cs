@@ -43,7 +43,6 @@ namespace cloud_ticket_app.Controllers
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(userId))
                 return RedirectToAction("Index", "Home");
 
-            // 🔐 Use the injected FirestoreDb instead of FirestoreDb.Create(...)
             var userRef = _db.Collection("users").Document(userId);
             var snap = await userRef.GetSnapshotAsync();
 

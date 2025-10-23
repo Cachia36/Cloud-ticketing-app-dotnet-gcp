@@ -4,22 +4,56 @@
 
 @if (User.Identity.IsAuthenticated)
 {
-    <h1>Welcome!</h1>
     @if(role == "User")
     {
+        <h1>Welcome!</h1>
         <a asp-controller="Tickets" asp-action="SubmitTicket">Click here to submit a ticket</a>
         <br>
         <a asp-controller="User" asp-action="UserDashboard">View your submitted tickets</a>
+        <br />
+        <p>
+            Technicians are able to view all tickets submitted by anyone. Users can only view and manage their own tickets.
+
+            Technicans cannot submit tickets. Please log in as a user to submit tickets.
+        </p>
+        <br />
+        <a>For testing purposes, you can log in as a technician with these credentials and see all tickets:</a>
+
+        @using (Html.BeginForm("AssignTechnicianRole", "Home", FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-link p-0">Become Technician</button>
+        }
+
     }
-    else
+    else if(role == "Technician")
     {
+        <h1>Welcome Technician!</h1>
         <a asp-controller="Technician" asp-action="TechnicianDashboard">Click here to view all tickets</a>
+        <p>
+            Technicians are able to view all tickets submitted by anyone. Users can only view and manage their own tickets.
+
+            Technicans cannot submit tickets. Please log in as a user to submit tickets.
+        </p>
+        <br />
+        <a>For testing purposes, you can remove the technician role to be able to submit a ticket:</a>
+
+        @using (Html.BeginForm("AssignUserRole", "Home", FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-link p-0">Remove Technician Role</button>
+        }
     }
 }
 else
 {
     <h1>Welcome!</h1>
-    <a asp-controller="Authenticator" asp-action="Index">Please log in to continue!</a>
+    <a asp-controller="Authenticator" asp-action="Index">Please log in to continue!</a> <br />
+    <p>
+        Technicians are able to view all tickets submitted by anyone. Users can only view and manage their own tickets.
+
+        Technicans cannot submit tickets. Please log in as a user to submit tickets.
+    </p>
 }
 
     <div class="position-fixed bottom-0 start-0 p-3" style="z-index: 1100">
