@@ -42,15 +42,7 @@ public class HomeController : Controller
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var email = User.FindFirstValue(ClaimTypes.Email);
-
         if (string.IsNullOrEmpty(userId)) return Forbid();
-
-        // Optional: short-circuit if already Technician
-        if (User.IsInRole("Technician"))
-        {
-            TempData["Message"] = "You already have the Technician role.";
-            return RedirectToAction("Index");
-        }
 
         // Update Firestore
         var userRef = _db.Collection("users").Document(userId);
@@ -62,12 +54,10 @@ public class HomeController : Controller
         // Reissue cookie with updated Role claim
         var claims = User.Claims.Where(c => c.Type != ClaimTypes.Role).ToList();
         claims.Add(new Claim(ClaimTypes.Role, "Technician"));
-
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         var principal = new ClaimsPrincipal(identity);
 
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme); // ✅ await
-
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
             principal,
@@ -77,7 +67,9 @@ public class HomeController : Controller
                 ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
             });
 
-        TempData["Message"] = "Role updated to Technician.";
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            return Json(new { ok = true, role = "Technician" });
+
         return RedirectToAction("Index");
     }
 
@@ -88,15 +80,7 @@ public class HomeController : Controller
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var email = User.FindFirstValue(ClaimTypes.Email);
-
         if (string.IsNullOrEmpty(userId)) return Forbid();
-
-        // Optional: short-circuit if already Technician
-        if (User.IsInRole("User"))
-        {
-            TempData["Message"] = "You already have the User role.";
-            return RedirectToAction("Index");
-        }
 
         // Update Firestore
         var userRef = _db.Collection("users").Document(userId);
@@ -108,12 +92,10 @@ public class HomeController : Controller
         // Reissue cookie with updated Role claim
         var claims = User.Claims.Where(c => c.Type != ClaimTypes.Role).ToList();
         claims.Add(new Claim(ClaimTypes.Role, "User"));
-
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         var principal = new ClaimsPrincipal(identity);
 
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
         await HttpContext.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
             principal,
@@ -123,7 +105,9 @@ public class HomeController : Controller
                 ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
             });
 
-        TempData["Message"] = "Role updated to User.";
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            return Json(new { ok = true, role = "User" });
+        
         return RedirectToAction("Index");
     }
 

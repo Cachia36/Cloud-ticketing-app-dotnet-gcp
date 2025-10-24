@@ -2,65 +2,74 @@
     var role = Context.Session.GetString("Role") ?? "User";
 }
 
+<form id="assignRoleForm" method="post" asp-controller="Home" style="display:none;">
+    @Html.AntiForgeryToken()
+</form>
+
 @if (User.Identity.IsAuthenticated)
 {
-    @if(role == "User")
+    if (role == "User")
     {
         <h1>Welcome!</h1>
         <a asp-controller="Tickets" asp-action="SubmitTicket">Click here to submit a ticket</a>
-        <br>
+        <br />
         <a asp-controller="User" asp-action="UserDashboard">View your submitted tickets</a>
         <br />
         <p>
             Technicians are able to view all tickets submitted by anyone. Users can only view and manage their own tickets.
-
             Technicans cannot submit tickets. Please log in as a user to submit tickets.
         </p>
         <br />
         <a>For testing purposes, you can log in as a technician with these credentials and see all tickets:</a>
+        <br />
 
-        @using (Html.BeginForm("AssignTechnicianRole", "Home", FormMethod.Post))
-        {
-            @Html.AntiForgeryToken()
-            <button type="submit" class="btn btn-link p-0">Become Technician</button>
-        }
-
+        <a id="assignTechLink"
+           href="#"
+           data-action-url="@Url.Action("AssignTechnicianRole", "Home")">
+            Become Technician
+        </a>
     }
-    else if(role == "Technician")
+    else if (role == "Technician")
     {
         <h1>Welcome Technician!</h1>
         <a asp-controller="Technician" asp-action="TechnicianDashboard">Click here to view all tickets</a>
         <p>
             Technicians are able to view all tickets submitted by anyone. Users can only view and manage their own tickets.
-
             Technicans cannot submit tickets. Please log in as a user to submit tickets.
         </p>
         <br />
         <a>For testing purposes, you can remove the technician role to be able to submit a ticket:</a>
+        <br />
 
-        @using (Html.BeginForm("AssignUserRole", "Home", FormMethod.Post))
-        {
-            @Html.AntiForgeryToken()
-            <button type="submit" class="btn btn-link p-0">Remove Technician Role</button>
-        }
+        <a id="removeTechLink"
+           href="#"
+           data-action-url="@Url.Action("AssignUserRole", "Home")">
+            Remove Technician Role
+        </a>
     }
 }
 else
 {
     <h1>Welcome!</h1>
-    <a asp-controller="Authenticator" asp-action="Index">Please log in to continue!</a> <br />
+    <a asp-controller="Authenticator" asp-action="Index">Please log in to continue!</a>
+    <br />
     <p>
         Technicians are able to view all tickets submitted by anyone. Users can only view and manage their own tickets.
-
         Technicans cannot submit tickets. Please log in as a user to submit tickets.
     </p>
 }
 
-    <div class="position-fixed bottom-0 start-0 p-3" style="z-index: 1100">
-        <div id="homeToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-                <div class="toast-body"></div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
+<div class="toast-container position-fixed bottom-0 start-0 p-3" style="z-index:1100">
+    <div id="homeToast" class="toast align-items-center bg-success text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
     </div>
+</div>
+
+
+@section Scripts {
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/changeRoles.js"></script>
+}

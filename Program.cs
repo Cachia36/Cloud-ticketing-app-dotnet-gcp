@@ -21,14 +21,18 @@ using cloud_ticket_app.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // --- Networking: listen on Cloud Run's PORT (defaults to 8080) ---
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
+var isCloudRun = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("K_SERVICE"));
+if (isCloudRun)
+{
+    var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
 
 // (Optional) appsettings.json is already loaded by CreateBuilder; fine to keep:
 builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
 
 // ---------- Google auth (local file in dev; ADC on Cloud Run) ----------
-var isCloudRun = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("K_SERVICE"));
 var projectId = Environment.GetEnvironmentVariable("GOOGLE_CLOUD_PROJECT")
               ?? builder.Configuration["Gcp:ProjectId"]   // set for local dev if you want
               ?? "pftc-459412";
@@ -37,13 +41,11 @@ GoogleCredential credential;
 
 if (!isCloudRun && File.Exists("gcp-service-account.json"))
 {
-    // ✅ Local dev: use your JSON key
     credential = GoogleCredential.FromFile("gcp-service-account.json")
                                  .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
 }
 else
 {
-    // ✅ Cloud Run (or no file found): use ADC (service account of the revision)
     credential = GoogleCredential.GetApplicationDefault()
                                  .CreateScoped("https://www.googleapis.com/auth/cloud-platform");
 }
